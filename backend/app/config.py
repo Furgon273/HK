@@ -9,3 +9,4 @@ class Config:
     JWT_SECRET_KEY = os.getenv('JWT_SECRET', 'super-secret-key')
     UPLOAD_FOLDER = 'uploads'
     ALLOWED_EXTENSIONS = {'mp4', 'mov', 'avi'}
+    JWT_ACCESS_TOKEN_EXPIRES = False

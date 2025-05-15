@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    command: gunicorn --bind 0.0.0.0:5000 --workers 4 manage:app
+    volumes:
+      - .:/app
+      - uploads:/app/uploads
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/hk_leaderboard
+      - JWT_SECRET=${JWT_SECRET}
+      - FLASK_ENV=development
+  
+  db:
+    image: postgres:13
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=hk_leaderboard
+
+volumes:
+  postgres_data:
+  uploads:

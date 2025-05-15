@@ -1,5 +1,5 @@
 from datetime import datetime
-from . import db
+from .extensions import db
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -8,10 +8,10 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     role = db.Column(db.String(20), default='user')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    profile = db.relationship('UserProfile', backref='user', uselist=False)
-    runs = db.relationship('Run', backref='player')
-    discussions = db.relationship('Discussion', backref='author')
-    comments = db.relationship('Comment', backref='author')
+    profile = db.relationship('UserProfile', backref='user', uselist=False, cascade='all, delete-orphan')
+    runs = db.relationship('Run', backref='player', cascade='all, delete-orphan')
+    discussions = db.relationship('Discussion', backref='author', cascade='all, delete-orphan')
+    comments = db.relationship('Comment', backref='author', cascade='all, delete-orphan')
 
 class UserProfile(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -27,7 +27,7 @@ class Challenge(db.Model):
     description = db.Column(db.Text)
     difficulty = db.Column(db.Integer, nullable=False)
     league = db.Column(db.String(20), nullable=False)
-    runs = db.relationship('Run', backref='challenge')
+    runs = db.relationship('Run', backref='challenge', cascade='all, delete-orphan')
 
 class Run(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -38,7 +38,7 @@ class Run(db.Model):
     status = db.Column(db.String(20), default='pending')
     submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
     approved_at = db.Column(db.DateTime)
-    comments = db.relationship('Comment', backref='run')
+    comments = db.relationship('Comment', backref='run', cascade='all, delete-orphan')
 
 class Discussion(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -46,7 +46,7 @@ class Discussion(db.Model):
     content = db.Column(db.Text, nullable=False)
     author_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    comments = db.relationship('Comment', backref='discussion')
+    comments = db.relationship('Comment', backref='discussion', cascade='all, delete-orphan')
 
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -56,4 +56,4 @@ class Comment(db.Model):
     run_id = db.Column(db.Integer, db.ForeignKey('run.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     parent_id = db.Column(db.Integer, db.ForeignKey('comment.id'))
-    replies = db.relationship('Comment', backref=db.backref('parent', remote_side=[id]))
+    replies = db.relationship('Comment', backref=db.backref('parent', remote_side=[id]), cascade='all, delete-orphan')
