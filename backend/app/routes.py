@@ -39,18 +39,6 @@ def make_admin(user_id):
     
     return jsonify({"message": f"Пользователь {user.username} теперь администратор"})
 
-@bp.route('/api/users', methods=['GET'])
-@moderator_required
-def get_users():
-    users = User.query.all()
-    return jsonify([{
-        'id': user.id,
-        'username': user.username,
-        'email': user.email,
-        'role': user.role,
-        'created_at': user.created_at.isoformat()
-    } for user in users])
-
 @bp.after_request
 def after_request(response):
     response.headers.add('Access-Control-Allow-Credentials', 'true')
