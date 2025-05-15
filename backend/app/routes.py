@@ -22,6 +22,40 @@ def moderator_required(fn):
         return fn(*args, **kwargs)
     return wrapper
 
+
+@bp.route('/api/users/<int:user_id>/make_admin', methods=['POST'])
+@jwt_required()
+def make_admin(user_id):
+    current_user = get_jwt_identity()
+    requesting_user = User.query.filter_by(username=current_user).first()
+    
+    # Проверяем, что текущий пользователь - админ
+    if not requesting_user or requesting_user.role != 'admin':
+        return jsonify({"error": "Недостаточно прав"}), 403
+    
+    user = User.query.get_or_404(user_id)
+    user.role = 'admin'
+    db.session.commit()
+    
+    return jsonify({"message": f"Пользователь {user.username} теперь администратор"})
+
+@bp.route('/api/users', methods=['GET'])
+@moderator_required
+def get_users():
+    users = User.query.all()
+    return jsonify([{
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'role': user.role,
+        'created_at': user.created_at.isoformat()
+    } for user in users])
+
+@bp.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
+
 @bp.route('/api/register', methods=['POST'])
 def register():
     data = request.get_json()
@@ -38,6 +72,8 @@ def register():
     )
     db.session.add(new_user)
     
+    db.session.commit()
+
     profile = UserProfile(user_id=new_user.id)
     db.session.add(profile)
     
@@ -105,6 +141,18 @@ def get_leaderboard():
     ranked_users.sort(key=lambda x: (-x['max_difficulty'], -x['runs_count']))
     return jsonify(ranked_users)
 
+@bp.route('/api/runs', methods=['GET'])
+def get_runs():
+    limit = request.args.get('limit', default=5, type=int)
+    runs = Run.query.order_by(Run.submitted_at.desc()).limit(limit).all()
+    return jsonify([{
+        'id': run.id,
+        'username': run.player.username,
+        'challenge': run.challenge.name,
+        'status': run.status,
+        'submitted_at': run.submitted_at.isoformat()
+    } for run in runs])
+
 @bp.route('/api/runs', methods=['POST'])
 @jwt_required()
 def submit_run():
@@ -145,6 +193,21 @@ def approve_run(run_id):
     }, room=f'user_{run.user_id}')
     
     return jsonify({"msg": "Run approved"})
+
+@bp.route('/api/discussions', methods=['GET'])  # Явно указываем GET метод
+def get_discussions():
+    limit = request.args.get('limit', default=5, type=int)
+    discussions = Discussion.query.order_by(Discussion.created_at.desc()).limit(limit).all()
+    
+    return jsonify([{
+        'id': discussion.id,
+        'title': discussion.title,
+        'author': {
+            'username': discussion.author.username
+        },
+        'created_at': discussion.created_at.isoformat(),
+        'comment_count': len(discussion.comments)
+    } for discussion in discussions])
 
 @bp.route('/api/discussions', methods=['POST'])
 @jwt_required()
